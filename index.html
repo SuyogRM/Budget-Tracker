@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Monthly Budget Tracker</title>
+  <style>
+    :root {
+      --bg-color: #ffffff;
+      --text-color: #000000;
+      --border-color: #ddd;
+      --header-bg: #f2f2f2;
+      --button-bg: #e0e0e0;
+    }
+
+    body.dark-mode {
+      --bg-color: #121212;
+      --text-color: #f5f5f5;
+      --border-color: #444;
+      --header-bg: #1e1e1e;
+      --button-bg: #333;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      /* transition: background 0.3s ease, color 0.3s ease; */
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    .form-section {
+      margin-bottom: 20px;
+    }
+
+    /* .form-section label,
+    .form-section input,
+    .form-section select,
+    .form-section button {
+      display: block;
+      width: 100%;
+      margin: 5px 0;
+    } */
+    .form-section label,
+    .form-section input,
+    .form-section select,
+    .form-section button {
+      margin: 5px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th,
+    td {
+      border: 1px solid var(--border-color);
+      padding: 8px;
+      text-align: left;
+    }
+
+    th {
+      background-color: var(--header-bg);
+      cursor: pointer;
+    }
+
+    td:last-child {
+      white-space: nowrap;
+      width: 1%;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .remove-category {
+      margin-left: 5px;
+      background: none;
+      color: red;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    #budgetTable-wrapper {
+      overflow-x: auto;
+    }
+
+    .dark-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--button-bg);
+      color: var(--text-color);
+      border: none;
+      padding: 6px 12px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    tbody tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+
+    tbody tr:nth-child(odd) {
+      background-color: #ffffff;
+    }
+
+    body.dark-mode tbody tr:nth-child(even) {
+      background-color: #1e1e1e;
+    }
+
+    body.dark-mode tbody tr:nth-child(odd) {
+      background-color: #2a2a2a;
+    }
+
+    @media (max-width: 768px) {
+      table,
+      thead,
+      tbody,
+      th,
+      td,
+      tr {
+        display: block;
+      }
+
+      thead tr {
+        display: none;
+      }
+
+      tr {
+        margin-bottom: 15px;
+        border-bottom: 2px solid var(--border-color);
+        padding: 10px;
+      }
+
+      td {
+        position: relative;
+        padding-left: 50%;
+        text-align: left;
+      }
+
+      td::before {
+        position: absolute;
+        left: 10px;
+        top: 8px;
+        white-space: nowrap;
+        font-weight: bold;
+      }
+
+      td:nth-of-type(1)::before { content: "Date"; }
+      td:nth-of-type(2)::before { content: "Item"; }
+      td:nth-of-type(3)::before { content: "Amount"; }
+      td:nth-of-type(4)::before { content: "Category"; }
+      td:nth-of-type(5)::before { content: "Subcategory"; }
+      td:nth-of-type(6)::before { content: "Details"; }
+      td:nth-of-type(7)::before { content: "Delete"; }
+    .form-section label,
+    .form-section input,
+    .form-section select,
+    .form-section button {
+      margin: 5px 0;
+      display: block;
+      width: 100%;
+      padding: 4px;
+    }
+    }
+
+  </style>
+  
+</head>
+
+<body>
+  <button class="dark-toggle" onclick="toggleDarkMode()">🌙 Toggle Dark Mode</button>
+  <h1>Monthly Budget Tracker</h1>
+
+  <div class="form-section">
+    <label for="date">Date:</label>
+    <input type="date" id="date" onchange="autoSelectMonthYear()" />
+
+    <label for="item">Item:</label>
+    <input type="text" id="item" />
+
+    <label for="amount">Amount:</label>
+    <input type="number" id="amount" />
+
+    <label for="category">Category:</label>
+      <select id="category" onchange="checkAddCategoryOption()">
+        <option value="">Select Category</option>
+        <option value="Utilities">Utilities</option>
+        <option value="Travel">Travel</option>
+        <option value="Leisure">Leisure</option>
+        <option value="Card Bill">Card Bill</option>
+        <option value="Miscellaneous">Miscellaneous</option>
+        <option value="__add_new__">+ Add New Category</option>
+      </select>
+      <button id="removeCustomCategory" class="remove-category hidden" onclick="removeCurrentCustomCategory()">✖</button>
+    
+
+    <input type="text" id="newCategoryInput" class="hidden" placeholder="Enter new category"
+      onkeydown="if(event.key==='Enter'){addNewCategory();}" />
+
+    <div id="subcategory-container" class="hidden">
+      <label for="subcategory">Subcategory:</label>
+      <select id="subcategory"></select>
+    </div>
+
+    <div id="sub-subcategory-container" class="hidden">
+      <label for="sub-subcategory">Details:</label>
+      <select id="sub-subcategory"></select>
+    </div>
+
+    <button onclick="addEntry()">Add</button>
+  </div>
+
+  <div class="form-section" style="margin-top: 10px">
+    <label for="monthFilter">Select Month:</label>
+    <select id="monthFilter" onchange="renderTable()"></select>
+
+    <label for="yearFilter">Select Year:</label>
+    <select id="yearFilter" onchange="renderTable()"></select>
+  </div>
+
+  <div id="budgetTable-wrapper">
+    <table id="budgetTable">
+      <thead>
+        <tr>
+          <th onclick="sortTable(0)">Date</th>
+          <th onclick="sortTable(1)">Item</th>
+          <th onclick="sortTable(2)">Amount</th>
+          <th onclick="sortTable(3)">Category</th>
+          <th onclick="sortTable(4)">Subcategory</th>
+          <th onclick="sortTable(5)">Details</th>
+          <th>Delete</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2"><strong>Total:</strong></td>
+          <td id="totalAmount"><strong>0.00</strong></td>
+          <td colspan="4"></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+    <script>
+        function toggleDarkMode() {
+            document.body.classList.toggle("dark-mode");
+        }
+        let entries = [];
+        let sortDirection = true;
+        let customCategories = JSON.parse(localStorage.getItem("customCategories") || "[]");
+        let categoryManuallyChanged = false;
+
+        const categoryKeywords = {
+            "Utilities": ["Electricity", "Water Bill", "Internet", "Phone Bill", "Water Tanker"],
+            "Travel": ["Flight", "Train", "Cab", "Uber", "Taxi", "Bus", "Trip", "Hotel"],
+            "Leisure": ["Movie", "Game", "Dining", "Dinner", "Netflix", "Party"],
+            "Card Bill": ["Card Payment", "Credit Card", "Debit", "HDFC", "ICICI", "One Card", "Kotak"]
+        };
+
+        const subcategories = {
+            "Card Bill": ["Debit Card", "Credit Card"]
+        };
+
+        const subSubcategories = {
+            "Debit Card": ["HDFC", "Kotak"],
+            "Credit Card": ["HDFC", "Amazon ICICI", "BOB One Card"]
+        };
+
+        function saveEntries() {
+            localStorage.setItem("budgetEntries", JSON.stringify(entries));
+        }
+
+        function loadEntries() {
+            const stored = localStorage.getItem("budgetEntries");
+            if (stored) {
+                entries = JSON.parse(stored);
+            }
+        }
+
+        function checkAddCategoryOption() {
+            categoryManuallyChanged = true;
+            const categorySelect = document.getElementById("category");
+            const newCategoryInput = document.getElementById("newCategoryInput");
+            const removeBtn = document.getElementById("removeCustomCategory");
+
+            const selected = categorySelect.value;
+            if (selected === "__add_new__") {
+                newCategoryInput.classList.remove("hidden");
+                removeBtn.classList.add("hidden");
+                newCategoryInput.focus();
+            } else {
+                newCategoryInput.classList.add("hidden");
+                removeBtn.classList.toggle("hidden", !customCategories.includes(selected));
+                if (subcategories[selected]) showSubcategory(selected);
+                else document.getElementById("subcategory-container").classList.add("hidden");
+            }
+        }
+
+        function addNewCategory() {
+            const input = document.getElementById("newCategoryInput");
+            const newCategory = input.value.trim();
+            if (!newCategory || customCategories.includes(newCategory)) return;
+
+            customCategories.push(newCategory);
+            localStorage.setItem("customCategories", JSON.stringify(customCategories));
+
+            const categorySelect = document.getElementById("category");
+            const option = document.createElement("option");
+            option.value = newCategory;
+            option.textContent = newCategory;
+            categorySelect.insertBefore(option, categorySelect.lastElementChild);
+
+            input.classList.add("hidden");
+            input.value = "";
+            categorySelect.value = newCategory;
+            checkAddCategoryOption();
+        }
+
+        function removeCurrentCustomCategory() {
+            const categorySelect = document.getElementById("category");
+            const current = categorySelect.value;
+            if (!customCategories.includes(current)) return;
+
+            customCategories = customCategories.filter(cat => cat !== current);
+            localStorage.setItem("customCategories", JSON.stringify(customCategories));
+
+            [...categorySelect.options].forEach(opt => {
+                if (opt.value === current) categorySelect.removeChild(opt);
+            });
+
+            categorySelect.value = "";
+            checkAddCategoryOption();
+        }
+
+        function populateCustomCategories() {
+            const categorySelect = document.getElementById("category");
+            customCategories.forEach(cat => {
+                const option = document.createElement("option");
+                option.value = cat;
+                option.textContent = cat;
+                categorySelect.insertBefore(option, categorySelect.lastElementChild);
+            });
+        }
+
+        function addEntry() {
+            const date = document.getElementById("date").value;
+            const item = document.getElementById("item").value.trim();
+            const amount = parseFloat(document.getElementById("amount").value);
+
+            const categorySelect = document.getElementById("category");
+            const subcategorySelect = document.getElementById("subcategory");
+            const detailsSelect = document.getElementById("sub-subcategory");
+
+            if (!categoryManuallyChanged) {
+                const itemLower = item.toLowerCase();
+
+                if (categoryKeywords["Utilities"].some(word => itemLower.includes(word.toLowerCase()))) {
+                    categorySelect.value = "Utilities";
+                } else if (itemLower.includes("emi")) {
+                    categorySelect.value = "Card Bill";
+                    showSubcategory("Card Bill");
+                    subcategorySelect.value = "Debit Card";
+                    showDetails("Debit Card");
+                    detailsSelect.value = "HDFC";
+                } else if (itemLower.includes("one card")) {
+                    categorySelect.value = "Card Bill";
+                    showSubcategory("Card Bill");
+                    subcategorySelect.value = "Credit Card";
+                    showDetails("Credit Card");
+                    detailsSelect.value = "BOB One Card";
+                } else if (itemLower.includes("icici")) {
+                    categorySelect.value = "Card Bill";
+                    showSubcategory("Card Bill");
+                    subcategorySelect.value = "Credit Card";
+                    showDetails("Credit Card");
+                    detailsSelect.value = "Amazon ICICI";
+                } else if (itemLower.includes("hdfc") && itemLower.includes("credit")) {
+                    categorySelect.value = "Card Bill";
+                    showSubcategory("Card Bill");
+                    subcategorySelect.value = "Credit Card";
+                    showDetails("Credit Card");
+                    detailsSelect.value = "HDFC";
+                } else if (itemLower.includes("hdfc")) {
+                    categorySelect.value = "Card Bill";
+                    showSubcategory("Card Bill");
+                    subcategorySelect.value = "Debit Card";
+                    showDetails("Debit Card");
+                    detailsSelect.value = "HDFC";
+                }
+            }
+
+            categoryManuallyChanged = false;
+
+            const category = categorySelect.value;
+            const subcategory = subcategorySelect?.value || "";
+            const details = detailsSelect?.value || "";
+
+            if (!date || !item || isNaN(amount) || !category) {
+                alert("Please fill all required fields.");
+                return;
+            }
+
+            entries.push({ date, item, amount, category, subcategory, details });
+
+            document.getElementById("date").value = "";
+            document.getElementById("item").value = "";
+            document.getElementById("amount").value = "";
+            categorySelect.value = "";
+            document.getElementById("subcategory").innerHTML = "";
+            document.getElementById("sub-subcategory").innerHTML = "";
+            document.getElementById("removeCustomCategory").classList.add("hidden");
+
+            saveEntries();
+            renderTable();
+        }
+
+        function deleteEntry(index) {
+            entries.splice(index, 1);
+            saveEntries();
+            renderTable();
+        }
+
+        function showSubcategory(category) {
+            const subcategorySelect = document.getElementById("subcategory");
+            const container = document.getElementById("subcategory-container");
+            subcategorySelect.innerHTML = "";
+
+            if (subcategories[category]) {
+                container.classList.remove("hidden");
+                subcategories[category].forEach(sub => {
+                    const opt = document.createElement("option");
+                    opt.value = sub;
+                    opt.text = sub;
+                    subcategorySelect.add(opt);
+                });
+            } else {
+                container.classList.add("hidden");
+            }
+        }
+
+        function showDetails(subcategory) {
+            const detailsSelect = document.getElementById("sub-subcategory");
+            const container = document.getElementById("sub-subcategory-container");
+            detailsSelect.innerHTML = "";
+
+            if (subSubcategories[subcategory]) {
+                container.classList.remove("hidden");
+                subSubcategories[subcategory].forEach(detail => {
+                    const opt = document.createElement("option");
+                    opt.value = detail;
+                    opt.text = detail;
+                    detailsSelect.add(opt);
+                });
+            } else {
+                container.classList.add("hidden");
+            }
+        }
+
+        function autoSelectMonthYear() {
+            const dateInput = document.getElementById("date").value;
+            if (dateInput) {
+                const date = new Date(dateInput);
+                document.getElementById("monthFilter").value = date.getMonth();
+                document.getElementById("yearFilter").value = date.getFullYear();
+            }
+        }
+
+        function renderTable() {
+            const monthFilter = parseInt(document.getElementById("monthFilter").value);
+            const yearFilter = parseInt(document.getElementById("yearFilter").value);
+            const tbody = document.querySelector("#budgetTable tbody");
+            tbody.innerHTML = "";
+
+            let total = 0;
+
+            entries.forEach((entry, index) => {
+                const entryDate = new Date(entry.date);
+                if (entryDate.getMonth() !== monthFilter || entryDate.getFullYear() !== yearFilter) return;
+
+                const row = document.createElement("tr");
+                row.innerHTML = `
+          <td>${entry.date} (${new Date(entry.date).toLocaleString('default', { weekday: 'long' })})</td>
+          <td>${entry.item}</td>
+          <td>${entry.amount.toFixed(2)}</td>
+          <td>${entry.category}</td>
+          <td>${entry.subcategory}</td>
+          <td>${entry.details}</td>
+          <td><button onclick="deleteEntry(${index})">Delete</button></td>
+        `;
+                tbody.appendChild(row);
+                total += entry.amount;
+            });
+
+            document.getElementById("totalAmount").textContent = total.toFixed(2);
+        }
+
+        window.onload = function () {
+            loadEntries();
+            const now = new Date();
+            const monthSelect = document.getElementById("monthFilter");
+            const yearSelect = document.getElementById("yearFilter");
+
+            for (let m = 0; m < 12; m++) {
+                const option = document.createElement("option");
+                option.value = m;
+                option.text = new Date(0, m).toLocaleString('default', { month: 'long' });
+                monthSelect.appendChild(option);
+            }
+
+            for (let y = 2024; y <= now.getFullYear() + 1; y++) {
+                const option = document.createElement("option");
+                option.value = y;
+                option.text = y;
+                yearSelect.appendChild(option);
+            }
+
+            monthSelect.value = now.getMonth();
+            yearSelect.value = now.getFullYear();
+
+            populateCustomCategories();
+            renderTable();
+        }
+    </script>
+</body>
+
+</html>
